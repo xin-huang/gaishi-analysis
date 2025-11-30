@@ -1,0 +1,20 @@
+preprocess:
+  vcf_file: "resources/gaishi/example.lr.vcf"
+  chr_name: "1"
+  ref_ind_file: "resources/gaishi/example.lr.ref.ind.list"
+  tgt_ind_file: "resources/gaishi/example.lr.tgt.ind.list"
+  win_len: 50000
+  win_step: 10000
+  is_phased: True
+  feature_config_file: "config/ArchIE.features.yaml"
+  output_dir: "results/gaishi/preprocess"
+  output_prefix: "gaishi.lr"
+  nprocess: 2
+  ploidy: 2
+
+model:
+  name: "logistic_regression"
+  params:
+    solver: "newton-cg"
+    max_iter: 10000
+    random_state: 12345
