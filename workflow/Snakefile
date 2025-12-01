@@ -20,7 +20,9 @@
 
 rule all:
     input:
+        expand("results/simulation/model_{model_id}/model_{model_id}.vcf", model_id=range(1)),
         "results/gaishi/gaishi.pred.tsv",
 
 
+include: "rules/run_simulation.smk"
 include: "rules/run_gaishi.smk"
