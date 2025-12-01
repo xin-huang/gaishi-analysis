@@ -136,15 +136,15 @@ def create_sample_lists(
 
     with open(ref_list, "w") as f:
         for i in range(ref_range):
-            f.write(f"REF\t{identifier}_{i}\n")
+            f.write(f"{identifier}_{i}\n")
 
     with open(tgt_list, "w") as f:
         for i in range(ref_range, tgt_range):
-            f.write(f"TGT\t{identifier}_{i}\n")
+            f.write(f"{identifier}_{i}\n")
 
     with open(src_list, "w") as f:
         for i in range(tgt_range, src_range):
-            f.write(f"SRC\t{identifier}_{i}\n")
+            f.write(f"{identifier}_{i}\n")
 
 
 def get_true_tracts(
@@ -211,8 +211,11 @@ def get_true_tracts(
                         sample_id = f"tsk_{ts.node(n).individual}_{int(n%ploidy+1)}"
                         tracts += f"1\t{int(left)}\t{int(right)}\t{sample_id}\n"
 
-        return tracts
+    return tracts
 
+
+with open(snakemake.output.seed_file, "w") as o:
+    o.write(f"{snakemake.params.seed}\n")
 
 ts = simulate(
     demog=snakemake.input.demes,
@@ -223,14 +226,16 @@ ts = simulate(
     tgt_id=snakemake.params.tgt_id,
     src_id=snakemake.params.src_id,
     seq_len=int(snakemake.params.model["length_bp"]),
-    mut_rate=snakemake.params.model["mu"],
-    rec_rate=snakemake.params.model["rho"],
+    mut_rate=float(snakemake.params.model["mu"]),
+    rec_rate=float(snakemake.params.model["rho"]),
     seed=int(snakemake.params.seed),
 )
 
 ts.dump(snakemake.output.ts)
 with open(snakemake.output.vcf, "w") as o:
-    ts.write_vcf(o)
+    # See https://github.com/tskit-dev/tskit/issues/2838
+    # msprime is 0-based
+    ts.write_vcf(o, allow_position_zero=True)
 
 create_sample_lists(
     nref=int(snakemake.params.model["n_ref"]),
