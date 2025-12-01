@@ -21,7 +21,7 @@
 rule run_gaishi_train:
     input:
         demes="config/ArchIE_3D19.yaml",
-        config="config/gaishi.train.config.yaml",   
+        config="config/gaishi.config.yaml",   
     output:
         model="results/gaishi/gaishi.trained.model",
     resources:
@@ -37,7 +37,7 @@ rule run_gaishi_train:
 rule run_gaishi_infer:
     input:
         model=rules.run_gaishi_train.output.model,
-        config="config/gaishi.infer.config.yaml",
+        config="config/gaishi.config.yaml",
     output:
         pred="results/gaishi/gaishi.pred.tsv",
     resources:

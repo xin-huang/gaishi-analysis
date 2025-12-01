@@ -20,7 +20,7 @@
 
 rule all:
     input:
-        expand("results/simulation/model_{model_id}/model_{model_id}.vcf", model_id=range(1)),
+        #expand("results/gaishi/model_{model_id}/gaishi.model_{model_id}.pred.tsv", model_id=range(1)),
         "results/gaishi/gaishi.pred.tsv",
 
 
