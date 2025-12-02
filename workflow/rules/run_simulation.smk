@@ -50,3 +50,15 @@ rule run_msprime_simulation:
         seed=3821,
     script:
         "../scripts/msprime_simulation.py"
+
+
+rule extract_biallelic_snps:
+    input:
+        vcf=rules.run_msprime_simulation.output.vcf,
+    output:
+        vcf="results/simulation/model_{model_id}/model_{model_id}.biallelic.snps.vcf.gz",
+    shell:
+        """
+        bcftools view {input.vcf} -v snps -m 2 -M 2 -g ^miss | bgzip -c > {output.vcf}
+        tabix -p vcf {output.vcf}
+        """
