@@ -65,7 +65,7 @@ rule run_gaishi_infer:
     output:
         pred="results/gaishi/model_{model_id}/gaishi.pred.tsv",
     resources:
-        cpus=2,
+        mem_gb=16, cpus=2,
     conda:
         "../envs/gaishi.yaml",       
     shell:

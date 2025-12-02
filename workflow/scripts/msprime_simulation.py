@@ -136,15 +136,15 @@ def create_sample_lists(
 
     with open(ref_list, "w") as f:
         for i in range(ref_range):
-            f.write(f"REF\t{identifier}_{i}\n")
+            f.write(f"{identifier}_{i}\n")
 
     with open(tgt_list, "w") as f:
         for i in range(ref_range, tgt_range):
-            f.write(f"TGT\t{identifier}_{i}\n")
+            f.write(f"{identifier}_{i}\n")
 
     with open(src_list, "w") as f:
         for i in range(tgt_range, src_range):
-            f.write(f"SRC\t{identifier}_{i}\n")
+            f.write(f"{identifier}_{i}\n")
 
 
 def get_true_tracts(
