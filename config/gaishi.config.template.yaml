@@ -1,7 +1,7 @@
 simulation:
   nrep: 100
-  nref: ?params.model["nref"]
-  ntgt: ?params.model["ntgt"]
+  nref: ?params.model["n_ref"]
+  ntgt: ?params.model["n_tgt"]
   ref_id: ?params.ref_id
   tgt_id: ?params.tgt_id
   src_id: ?params.src_id
@@ -12,14 +12,14 @@ simulation:
   is_phased: True
   output_dir: ?params.output_dir
   output_prefix: ?params.output_prefix
-  nfeature: 100
+  nfeature: ?params.nfeature
   feature_config_file: "config/ArchIE.features.yaml"
   intro_prop: 0.7
   non_intro_prop: 0.3
   is_shuffled: False
   force_balanced: False
   nprocess: ?params.nprocess
-  seed: 12345
+  seed: ?params.seedmsprime
 
 preprocess:
   vcf_file: ?params.vcf_file

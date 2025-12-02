@@ -33,6 +33,7 @@ rule render_gaishi_config_template:
         output_dir="results/gaishi/model_{model_id}",
         nfeature=10000,
         nprocess=16,
+        seedmsprime=4836,
         vcf_file=rules.extract_biallelic_snps.output.vcf,
         ref_ind_file=rules.run_msprime_simulation.output.ref_list,
         tgt_ind_file=rules.run_msprime_simulation.output.tgt_list,
@@ -60,6 +61,7 @@ rule run_gaishi_infer:
     input:
         model=rules.run_gaishi_train.output.model,
         config=rules.render_gaishi_config_template.output.config,
+        vcf=rules.extract_biallelic_snps.output.vcf,
     output:
         pred="results/gaishi/model_{model_id}/gaishi.pred.tsv",
     resources:
