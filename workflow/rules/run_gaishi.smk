@@ -18,16 +18,38 @@
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
+rule render_gaishi_config_template:
+    input:
+        tsv="config/msprime_simulation_params.tsv",
+        template="config/gaishi.config.template.yaml",
+    output:
+        config="results/gaishi/model_{model_id}/gaishi.model_{model_id}.config.yaml",
+    params:
+        model=get_model_params,
+        ref_id="Reference",
+        tgt_id="Target",
+        src_id="Source",
+        output_prefix="gaishi.lr",
+        output_dir="results/gaishi/model_{model_id}",
+        nfeature=10000,
+        nprocess=16,
+        vcf_file=rules.extract_biallelic_snps.output.vcf,
+        ref_ind_file=rules.run_msprime_simulation.output.ref_list,
+        tgt_ind_file=rules.run_msprime_simulation.output.tgt_list,
+    template_engine:
+        "yte"
+
+
 rule run_gaishi_train:
     input:
         demes="config/ArchIE_3D19.yaml",
-        config="config/gaishi.config.yaml",   
+        config=rules.render_gaishi_config_template.output.config,   
     output:
-        model="results/gaishi/gaishi.trained.model",
+        model="results/gaishi/model_{model_id}/gaishi.trained.model",
     resources:
-        cpus=2,
+        cpus=16,
     conda:
-        "../envs/gaishi-env.yaml",
+        "../envs/gaishi.yaml",
     shell:
         """
         gaishi train --demes {input.demes} --config {input.config} --output {output.model}
@@ -37,13 +59,13 @@ rule run_gaishi_train:
 rule run_gaishi_infer:
     input:
         model=rules.run_gaishi_train.output.model,
-        config="config/gaishi.config.yaml",
+        config=rules.render_gaishi_config_template.output.config,
     output:
-        pred="results/gaishi/gaishi.pred.tsv",
+        pred="results/gaishi/model_{model_id}/gaishi.pred.tsv",
     resources:
         cpus=2,
     conda:
-        "../envs/gaishi-env.yaml",       
+        "../envs/gaishi.yaml",       
     shell:
         """
         gaishi infer --model {input.model} --config {input.config} --output {output.pred}

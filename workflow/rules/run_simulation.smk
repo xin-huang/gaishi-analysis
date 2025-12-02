@@ -21,14 +21,6 @@
 import pandas as pd
 
 
-def get_model_params(wildcards, input):
-    df = pd.read_csv(input.tsv, sep="\t")
-    mid = int(wildcards.model_id)
-    model = df.iloc[mid]
-
-    return model.to_dict()
-
-
 rule run_msprime_simulation:
     input:
         tsv="config/msprime_simulation_params.tsv",
