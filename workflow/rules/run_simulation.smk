@@ -40,6 +40,8 @@ rule run_msprime_simulation:
         src_id="Source",
         reps=1,
         seed=3821,
+    resources:
+        mem_gb=16,
     script:
         "../scripts/msprime_simulation.py"
 
