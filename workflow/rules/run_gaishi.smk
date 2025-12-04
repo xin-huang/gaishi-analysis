@@ -31,7 +31,7 @@ rule render_gaishi_config_template:
         src_id="Source",
         output_prefix="gaishi.lr",
         output_dir="results/gaishi/model_{model_id}/rep_{rep}",
-        nfeature=10000,
+        nfeature=1000000,
         nprocess=16,
         seedmsprime=4836,
         vcf_file=rules.extract_biallelic_snps.output.vcf,
@@ -48,7 +48,7 @@ rule run_gaishi_train:
     output:
         model="results/gaishi/model_{model_id}/rep_{rep}/gaishi.trained.model",
     resources:
-        cpus=16,
+        mem_gb=64, cpus=16,
     conda:
         "../envs/gaishi.yaml",
     shell:
@@ -65,7 +65,7 @@ rule run_gaishi_infer:
     output:
         pred="results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.tsv",
     resources:
-        mem_gb=128, cpus=16,
+        mem_gb=64, cpus=16,
     conda:
         "../envs/gaishi.yaml",       
     shell:

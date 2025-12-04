@@ -11,7 +11,7 @@ cluster:
     --partition={resources.partition}
     --no-requeue
 default-resources:
-    - time=720
+    - time=360
     - nodes=1
     - ntasks=1
     - mem_gb=4
