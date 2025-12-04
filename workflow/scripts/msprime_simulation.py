@@ -214,6 +214,9 @@ def get_true_tracts(
         return tracts
 
 
+with open(snakemake.output.seed_file, "w") as o:
+    o.write(f"{snakemake.params.seed}\n")
+
 ts = simulate(
     demog=snakemake.input.demes,
     nref=int(snakemake.params.model["n_ref"]),

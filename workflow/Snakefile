@@ -18,9 +18,17 @@
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
+n_model = 1
+n_rep = 25
+
+
 rule all:
     input:
-        expand("results/gaishi/model_{model_id}/gaishi.pred.tsv", model_id=range(1)),
+        expand(
+            "results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.tsv", 
+            model_id=range(n_model),
+            rep=range(n_rep),
+        ),
 
 
 include: "rules/common.smk"

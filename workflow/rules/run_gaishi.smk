@@ -23,14 +23,14 @@ rule render_gaishi_config_template:
         tsv="config/msprime_simulation_params.tsv",
         template="config/gaishi.config.template.yaml",
     output:
-        config="results/gaishi/model_{model_id}/gaishi.model_{model_id}.config.yaml",
+        config="results/gaishi/model_{model_id}/rep_{rep}/gaishi.model_{model_id}.rep_{rep}.config.yaml",
     params:
         model=get_model_params,
         ref_id="Reference",
         tgt_id="Target",
         src_id="Source",
         output_prefix="gaishi.lr",
-        output_dir="results/gaishi/model_{model_id}",
+        output_dir="results/gaishi/model_{model_id}/rep_{rep}",
         nfeature=10000,
         nprocess=16,
         seedmsprime=4836,
@@ -46,7 +46,7 @@ rule run_gaishi_train:
         demes="config/ArchIE_3D19.yaml",
         config=rules.render_gaishi_config_template.output.config,   
     output:
-        model="results/gaishi/model_{model_id}/gaishi.trained.model",
+        model="results/gaishi/model_{model_id}/rep_{rep}/gaishi.trained.model",
     resources:
         cpus=16,
     conda:
@@ -63,9 +63,9 @@ rule run_gaishi_infer:
         config=rules.render_gaishi_config_template.output.config,
         vcf=rules.extract_biallelic_snps.output.vcf,
     output:
-        pred="results/gaishi/model_{model_id}/gaishi.pred.tsv",
+        pred="results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.tsv",
     resources:
-        mem_gb=16, cpus=2,
+        mem_gb=128, cpus=16,
     conda:
         "../envs/gaishi.yaml",       
     shell:
