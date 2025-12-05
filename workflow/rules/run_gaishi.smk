@@ -18,16 +18,39 @@
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
+rule render_gaishi_config_template:
+    input:
+        tsv="config/msprime_simulation_params.tsv",
+        template="config/gaishi.config.template.yaml",
+    output:
+        config="results/gaishi/model_{model_id}/rep_{rep}/gaishi.model_{model_id}.rep_{rep}.config.yaml",
+    params:
+        model=get_model_params,
+        ref_id="Reference",
+        tgt_id="Target",
+        src_id="Source",
+        output_prefix="gaishi.lr",
+        output_dir="results/gaishi/model_{model_id}/rep_{rep}",
+        nfeature=1000000,
+        nprocess=16,
+        seedmsprime=4836,
+        vcf_file=rules.extract_biallelic_snps.output.vcf,
+        ref_ind_file=rules.run_msprime_simulation.output.ref_list,
+        tgt_ind_file=rules.run_msprime_simulation.output.tgt_list,
+    template_engine:
+        "yte"
+
+
 rule run_gaishi_train:
     input:
         demes="config/ArchIE_3D19.yaml",
-        config="config/gaishi.train.config.yaml",   
+        config=rules.render_gaishi_config_template.output.config,   
     output:
-        model="results/gaishi/gaishi.trained.model",
+        model="results/gaishi/model_{model_id}/rep_{rep}/gaishi.trained.model",
     resources:
-        cpus=2,
+        mem_gb=64, cpus=16,
     conda:
-        "../envs/gaishi-env.yaml",
+        "../envs/gaishi.yaml",
     shell:
         """
         gaishi train --demes {input.demes} --config {input.config} --output {output.model}
@@ -37,13 +60,14 @@ rule run_gaishi_train:
 rule run_gaishi_infer:
     input:
         model=rules.run_gaishi_train.output.model,
-        config="config/gaishi.infer.config.yaml",
+        config=rules.render_gaishi_config_template.output.config,
+        vcf=rules.extract_biallelic_snps.output.vcf,
     output:
-        pred="results/gaishi/gaishi.pred.tsv",
+        pred="results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.tsv",
     resources:
-        cpus=2,
+        mem_gb=64, cpus=16,
     conda:
-        "../envs/gaishi-env.yaml",       
+        "../envs/gaishi.yaml",       
     shell:
         """
         gaishi infer --model {input.model} --config {input.config} --output {output.pred}

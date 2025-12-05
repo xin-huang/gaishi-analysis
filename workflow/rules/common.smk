@@ -18,19 +18,9 @@
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
-n_model = 1
-n_rep = 25
+def get_model_params(wildcards, input):
+    df = pd.read_csv(input.tsv, sep="\t")
+    mid = int(wildcards.model_id)
+    model = df.iloc[mid]
 
-
-rule all:
-    input:
-        expand(
-            "results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.tsv", 
-            model_id=range(n_model),
-            rep=range(n_rep),
-        ),
-
-
-include: "rules/common.smk"
-include: "rules/run_simulation.smk"
-include: "rules/run_gaishi.smk"
+    return model.to_dict()
