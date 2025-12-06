@@ -18,6 +18,13 @@
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
+import numpy as np
+
+
+np.random.seed(4836)
+seed_list = np.random.randint(1, 2**31, n_rep)
+
+
 rule render_gaishi_config_template:
     input:
         tsv="config/msprime_simulation_params.tsv",
@@ -29,11 +36,12 @@ rule render_gaishi_config_template:
         ref_id="Reference",
         tgt_id="Target",
         src_id="Source",
-        output_prefix="gaishi.lr",
+        train_output_prefix="gaishi.lr.train",
+        infer_output_prefix="gaishi.lr.infer",
         output_dir="results/gaishi/model_{model_id}/rep_{rep}",
         nfeature=1000000,
         nprocess=16,
-        seedmsprime=4836,
+        seedmsprime=lambda wildcards: int(seed_list[int(wildcards.rep)]),
         vcf_file=rules.extract_biallelic_snps.output.vcf,
         ref_ind_file=rules.run_msprime_simulation.output.ref_list,
         tgt_ind_file=rules.run_msprime_simulation.output.tgt_list,
