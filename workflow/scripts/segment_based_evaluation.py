@@ -58,7 +58,11 @@ def calc_pr(
 
 
 def evaluate(
-    true_tract_file: str, inferred_tract_file: str, cutoff: float, output: str
+    true_tract_file: str,
+    inferred_tract_file: str,
+    seq_len: int,
+    cutoff: float,
+    output: str,
 ) -> None:
     """
     Evaluate model performance using segment-based precision and recall.
@@ -69,11 +73,12 @@ def evaluate(
         Path to the file containing true introgressed fragments.
     inferred_tract_file : str
         Path to the file containing inferred introgressed fragments.
+    seq_len : int
+        Total length of the sequence.
     cutoff : float
         Probability threshold used to classify a fragment as introgressed.
     output : str
-        Path to the output file where model performance metrics
-        (e.g., precision and recall) will be written.
+        Path to the output file where stores model performance metrics.
     """
     try:
         true_tracts = pd.read_csv(
@@ -106,9 +111,12 @@ def evaluate(
             "Cutoff",
             "Precision",
             "Recall",
-            "True_tracts_length",
-            "Inferred_tracts_length",
-            "Overlapped_length",
+            "L_TT_sample", # Length of true tracts per sample
+            "L_IT_sample", # Length of inferred tracts per sample
+            "L_TP_sample", # Length of true positives per sample
+            "L_FP_sample", # Length of false positives per sample
+            "L_TN_sample", # Length of true negatives per sample
+            "L_FN_sample", # Length of false negatives per sample
         ]
     )
 
@@ -116,46 +124,62 @@ def evaluate(
     sum_ninferred_tracts = 0
     sum_ntrue_positives = 0
 
-    for s in np.intersect1d(true_tracts_samples, inferred_tracts_samples):
-        ind_true_tracts = true_tracts[true_tracts.Sample == s].merge(by="Sample")
-        ind_inferred_tracts = inferred_tracts[inferred_tracts.Sample == s].merge(
-            by="Sample"
-        )
+    overlap = np.intersect1d(true_tracts_samples, inferred_tracts_samples)
+    true_tracts_only = np.setdiff1d(true_tracts_samples, inferred_tracts_samples)
+    inferred_tracts_only = np.setdiff1d(inferred_tracts_samples, true_tracts_samples)
+
+    sample_size = len(overlap) + len(true_tracts_only) + len(inferred_tracts_only)
+
+    # Samples exist in both true_tracts and inferred_tracts
+    for s in overlap:
+        ind_true_tracts = true_tracts[true_tracts.Sample == s]
+        ind_inferred_tracts = inferred_tracts[inferred_tracts.Sample == s]
         ind_overlaps = ind_true_tracts.intersect(ind_inferred_tracts)
 
-        ntrue_tracts = np.sum([x[1].End - x[1].Start for x in ind_true_tracts])
-        ninferred_tracts = np.sum([x[1].End - x[1].Start for x in ind_inferred_tracts])
-        ntrue_positives = np.sum([x[1].End - x[1].Start for x in ind_overlaps])
+        ntrue_tracts = (ind_true_tracts.End - ind_true_tracts.Start).sum()
+        ninferred_tracts = (ind_inferred_tracts.End - ind_inferred_tracts.Start).sum()
+        ntrue_positives = (
+            (ind_overlaps.End - ind_overlaps.Start).sum() if len(ind_overlaps) > 0 else 0
+        )
 
-        #precision, recall = cal_pr(ntrue_tracts, ninferred_tracts, ntrue_positives)
         sum_ntrue_tracts += ntrue_tracts
         sum_ninferred_tracts += ninferred_tracts
         sum_ntrue_positives += ntrue_positives
 
-    for s in np.setdiff1d(true_tracts_samples, inferred_tracts_samples):
+    # Samples only exist in true_tracts
+    for s in true_tracts_only:
         # ninferred_tracts = 0
         ind_true_tracts = true_tracts[true_tracts.Sample == s]
 
-        ntrue_tracts = np.sum([x[1].End - x[1].Start for x in ind_true_tracts])
+        ntrue_tracts = (ind_true_tracts.End - ind_true_tracts.Start).sum()
         sum_ntrue_tracts += ntrue_tracts
 
-    for s in np.setdiff1d(inferred_tracts_samples, true_tracts_samples):
+    # Samples only exist in inferred_tracts
+    for s in inferred_tracts_only:
         # ntrue_tracts = 0
         ind_inferred_tracts = inferred_tracts[inferred_tracts.Sample == s]
 
-        ninferred_tracts = np.sum([x[1].End - x[1].Start for x in ind_inferred_tracts])
+        ninferred_tracts = (ind_inferred_tracts.End - ind_inferred_tracts.Start).sum()
         sum_ninferred_tracts += ninferred_tracts
 
     total_precision, total_recall = calc_pr(
         sum_ntrue_tracts, sum_ninferred_tracts, sum_ntrue_positives
     )
+
+    sum_ntrue_negatives = seq_len * sample_size - sum_ntrue_tracts
+    sum_nfalse_positives = sum_ninferred_tracts - sum_ntrue_positives
+    sum_nfalse_negatives = sum_ntrue_tracts - sum_ntrue_positives
+
     res.loc[len(res.index)] = [
         cutoff,
         total_precision,
         total_recall,
-        sum_ntrue_tracts,
-        sum_ninferred_tracts,
-        sum_ntrue_positives,
+        sum_ntrue_tracts / sample_size,
+        sum_ninferred_tracts / sample_size,
+        sum_ntrue_positives / sample_size,
+        sum_nfalse_positives / sample_size,
+        sum_ntrue_negatives / sample_size,
+        sum_nfalse_negatives / sample_size,
     ]
 
     res.fillna("NaN").to_csv(output, sep="\t", index=False)
@@ -164,6 +188,7 @@ def evaluate(
 evaluate(
     true_tract_file=snakemake.input.true_tracts,
     inferred_tract_file=snakemake.input.inferred_tracts,
-    cutoff=snakemake.params.cutoff,
+    seq_len=int(snakemake.params.seq_len),
+    cutoff=float(snakemake.params.cutoff),
     output=snakemake.output.tsv,
 )

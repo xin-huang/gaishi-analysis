@@ -153,7 +153,7 @@ def get_true_tracts(
     src_id: str,
     ploidy: int = 2,
 ) -> str:
-    """ 
+    """
     Extract introgressed ancestry tracts for target samples from a tree sequence.
 
     For all migration events between the specified source and target populations,

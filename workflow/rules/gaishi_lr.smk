@@ -28,12 +28,12 @@ cutoffs = np.arange(0.1, 1.0, 0.1).round(1)
 cutoffs = np.concatenate([np.array([0.001, 0.01]), cutoffs, np.array([0.99, 0.999])])
 
 
-rule render_gaishi_config_template:
+rule render_lr_config_template:
     input:
         tsv="config/msprime_simulation_params.tsv",
         template="config/gaishi.config.template.yaml",
     output:
-        config="results/gaishi/model_{model_id}/rep_{rep}/gaishi.model_{model_id}.rep_{rep}.config.yaml",
+        config="results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.model_{model_id}.rep_{rep}.config.yaml",
     params:
         model=get_model_params,
         ref_id="Reference",
@@ -41,7 +41,7 @@ rule render_gaishi_config_template:
         src_id="Source",
         train_output_prefix="gaishi.lr.train",
         infer_output_prefix="gaishi.lr.infer",
-        output_dir="results/gaishi/model_{model_id}/rep_{rep}",
+        output_dir="results/gaishi/model_{model_id}/lr/rep_{rep}",
         nfeature=1000000,
         nprocess=16,
         seedmsprime=lambda wildcards: int(seed_list[int(wildcards.rep)]),
@@ -52,12 +52,12 @@ rule render_gaishi_config_template:
         "yte"
 
 
-rule run_gaishi_train:
+rule run_lr_train:
     input:
         demes="config/ArchIE_3D19.yaml",
-        config=rules.render_gaishi_config_template.output.config,   
+        config=rules.render_lr_config_template.output.config,   
     output:
-        model="results/gaishi/model_{model_id}/rep_{rep}/gaishi.trained.model",
+        model="results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.trained.model",
     resources:
         mem_gb=64, cpus=16,
     conda:
@@ -68,13 +68,13 @@ rule run_gaishi_train:
         """
 
 
-rule run_gaishi_infer:
+rule run_lr_infer:
     input:
-        model=rules.run_gaishi_train.output.model,
-        config=rules.render_gaishi_config_template.output.config,
+        model=rules.run_lr_train.output.model,
+        config=rules.render_lr_config_template.output.config,
         vcf=rules.extract_biallelic_snps.output.vcf,
     output:
-        pred="results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.tsv",
+        pred="results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.pred.tsv",
     resources:
         mem_gb=256, cpus=16,
     conda:
@@ -87,57 +87,75 @@ rule run_gaishi_infer:
 
 rule get_inferred_tracts:
     input:
-        pred=rules.run_gaishi_infer.output.pred,
+        pred=rules.run_lr_infer.output.pred,
     output:
-        inferred_tracts=temp("results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.cutoff_{cutoff}.inferred.tracts.bed"),
+        inferred_tracts=temp("results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.pred.cutoff_{cutoff}.inferred.tracts.bed"),
     params:
         cutoff="{cutoff}",
-    conda:
-        "../envs/gaishi.yaml",
     shell:
-        """
-        awk -v cutoff={params.cutoff} -v OFS="\\t" '$6>cutoff{{print $1,$2,$3,$4}}' {input.pred} | sed '1d' > {output.inferred_tracts}
+        r"""
+        awk -v cutoff={params.cutoff} -v OFS="\t" '$6>cutoff{{print $1,$2,$3,$4}}' {input.pred} | sed '1d' > {output.inferred_tracts}
         """
 
 
-rule evaluate_gaishi_segment_based:
+rule evaluate_lr_segment_based:
     input:
         true_tracts=rules.run_msprime_simulation.output.bed,
         inferred_tracts=rules.get_inferred_tracts.output.inferred_tracts,
     output:
-        tsv=temp("results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.cutoff_{cutoff}.performance.tsv"),
+        tsv=temp("results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.pred.cutoff_{cutoff}.performance.tsv"),
     params:
         cutoff="{cutoff}",
-    conda:
-        "../envs/gaishi.yaml",
+        seq_len=200_000_000,
     script:
         "../scripts/segment_based_evaluation.py"
 
 
 rule summarize_performance:
     input:
-        performance=expand(
-            "results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.cutoff_{cutoff}.performance.tsv",
+        perf=expand(
+            "results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.pred.cutoff_{cutoff}.performance.tsv",
             cutoff=cutoffs,
             allow_missing=True,
         ),
     output:
-        performance="results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.performance.tsv",
+        perf=temp("results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.pred.performance.tsv"),
     shell:
-        """
-        cat {input.performance} | grep -v Cutoff | awk -v rep={wildcards.rep} '{{print rep"\t"$0}}' > {output.performance}
-        sed -i '1iReplicate\\tCutoff\\tPrecision\\tRecall\\tTrue_tracts_length\\tInferred_tracts_length\\tOverlapped_length' {output.performance}
+        r"""
+        cat {input.perf} | grep -v Cutoff | awk -v rep={wildcards.rep} '{{print rep"\t"$0}}' > {output.perf}
+        sed -i '1iReplicate\tCutoff\tPrecision\tRecall\tL_TT_sample\tL_IT_sample\tL_TP_sample\tL_FP_sample\tL_TN_sample\tL_FN_sample' {output.perf}
         """
 
 
-rule plot_pr_curve:
+rule collect_replicate_performance:
     input:
-        performance=expand(
-            "results/gaishi/model_{model_id}/rep_{rep}/gaishi.pred.performance.tsv",
+        perf=expand(
+            "results/gaishi/model_{model_id}/lr/rep_{rep}/gaishi.pred.performance.tsv",
             rep=range(n_rep),
             allow_missing=True,
         ),
     output:
-        plot="results/gaishi/model_{model_id}/gaishi.lr.pr.png",
+        perf="results/gaishi/model_{model_id}/lr/gaishi.model_{model_id}.lr.pred.performance.tsv",
+    shell:
+        r"""
+        cat {input.perf} | grep -v Cutoff | awk -v id={wildcards.model_id} '{{print "Model_"id"\t"$0}}' > {output.perf}
+        sed -i '1iModel\tReplicate\tCutoff\tPrecision\tRecall\tL_TT_sample\tL_IT_sample\tL_TP_sample\tL_FP_sample\tL_TN_sample\tL_FN_sample' {output.perf}
+        """
+
+
+rule plot_confusion_matrix:
+    input:
+        perf=rules.collect_replicate_performance.output.perf,
+    output:
+        plot="results/gaishi/model_{model_id}/plots/gaishi.model_{model_id}.lr.pred.cutoff_{cutoff}.confusion.matrix.png",
+    script:
+       "../scripts/plot_confusion_matrix.py"
+
+
+rule plot_pr_curve:
+    input:
+        perf=rules.collect_replicate_performance.output.perf,
+    output:
+        plot="results/gaishi/model_{model_id}/plots/gaishi.model_{model_id}.lr.pred.pr.curve.png",
     script:
         "../scripts/plot_pr_curve.py"
