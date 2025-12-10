@@ -18,15 +18,20 @@
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
+import numpy as np
+
 n_model = 1
 n_rep = 25
 
+cutoffs = np.arange(0.1, 1.0, 0.1).round(1)
+cutoffs = np.concatenate([np.array([0.001, 0.01]), cutoffs, np.array([0.99, 0.999])])
 
 rule all:
     input:
         expand(
-            "results/gaishi/model_{model_id}/gaishi.lr.pr.png",
+            "results/gaishi/model_{model_id}/plots/gaishi.model_{model_id}.lr.pred.cutoff_{cutoff}.confusion.matrix.png",
             model_id=range(n_model),
+            cutoff=cutoffs,
         ),
 
 
