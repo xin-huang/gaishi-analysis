@@ -18,14 +18,6 @@
 #    https://www.gnu.org/licenses/gpl-3.0.en.html
 
 
-import numpy as np
-import pandas as pd
-
-
-np.random.seed(3821)
-seed_list = np.random.randint(1, 2**31, n_rep)
-
-
 rule run_msprime_simulation:
     input:
         tsv="config/msprime_simulation_params.tsv",
