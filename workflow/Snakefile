@@ -19,18 +19,29 @@
 
 
 import numpy as np
+import pandas as pd
+
 
 n_model = 1
 n_rep = 25
 
+np.random.seed(3821)
+seed_list = np.random.randint(1, 2**31, n_rep)
 cutoffs = np.arange(0.1, 1.0, 0.1).round(1)
 cutoffs = np.concatenate([np.array([0.001, 0.01]), cutoffs, np.array([0.99, 0.999])])
+
 
 rule all:
     input:
         expand(
-            "results/gaishi/model_{model_id}/plots/gaishi.model_{model_id}.lr.pred.cutoff_{cutoff}.confusion.matrix.png",
+            "results/gaishi/model_{model_id}/plots/gaishi.model_{model_id}.{type}.pred.pr.curve.png",
             model_id=range(n_model),
+            type=["lr", "etc"],
+        ),
+        expand(
+            "results/gaishi/model_{model_id}/plots/gaishi.model_{model_id}.{type}.pred.cutoff_{cutoff}.confusion.matrix.png",
+            model_id=range(n_model),
+            type=["lr", "etc"],
             cutoff=cutoffs,
         ),
 
@@ -38,3 +49,4 @@ rule all:
 include: "rules/common.smk"
 include: "rules/simulation.smk"
 include: "rules/gaishi_lr.smk"
+include: "rules/gaishi_etc.smk"

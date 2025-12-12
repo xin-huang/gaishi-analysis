@@ -188,7 +188,7 @@ def evaluate(
 evaluate(
     true_tract_file=snakemake.input.true_tracts,
     inferred_tract_file=snakemake.input.inferred_tracts,
-    seq_len=int(snakemake.params.seq_len),
+    seq_len=int(snakemake.params.model["length_bp"]),
     cutoff=float(snakemake.params.cutoff),
     output=snakemake.output.tsv,
 )
